@@ -7,8 +7,6 @@
 		<WarningLevel>9999</WarningLevel>
 		<LangVersion>latest</LangVersion>
 		<!-- Version, AssemblyVersion and AssemblyFileVersion is automatically generated from 'manifest.json' -->
-		<COI_MODS>$(APPDATA)\Captain of Industry\Mods</COI_MODS>
-
 		<!-- Set to true to automatically deploy to the mods folder on build -->
 		<DeployToModsFolder>true</DeployToModsFolder>
 	</PropertyGroup>
@@ -177,7 +175,7 @@
 	</Target>
 
 	<!-- Deploy to mods folder on build -->
-	<Target Name="DeployToModsFolder" AfterTargets="PostBuildEvent" Condition=" '$(DeployToModsFolder)' == 'true' AND '$(ProjectDir)' != '*Undefined*' ">
+	<Target Name="DeployToModsFolder" AfterTargets="Build" Condition=" '$(DeployToModsFolder)' == 'true' AND '$(ProjectDir)' != '*Undefined*' ">
 		<Copy SourceFiles="$(ProjectDir)\manifest.json" DestinationFolder="$(COI_MODS)\$(TargetName)\" />
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(COI_MODS)\$(TargetName)\" />
 		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(COI_MODS)\$(TargetName)\" Condition="'$(Configuration)' == 'Debug'" />

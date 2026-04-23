@@ -7,7 +7,7 @@ using Mafi.Collections;
 using Mafi.Core.Buildings.Storages;
 using Mafi.Core.Entities;
 using Mafi.Core.Game;
-using Mafi.Core.Game;
+using Mafi.Core.GameLoop;
 using Mafi.Core.Mods;
 using Mafi.Core.Prototypes;
 using Mafi.Unity.Ui;
@@ -99,9 +99,16 @@ public sealed class StorageCapacityMod : IMod, IDisposable
             Log.Info($"StorageCapacityMod: override file for save '{gameNameConfig.GameName}': {savePath}");
 
             // ── Step 3: Re-apply saved capacity overrides on load ──
+            // Deferred to InitState so it runs after InstantiateAllAndLock(),
+            // ensuring all entities are fully initialized before we touch capacities.
             if (gameWasLoaded)
             {
-                overrideManager.ReapplyAllOverrides();
+                var gameLoopEvents = resolver.Resolve<IGameLoopEvents>();
+                gameLoopEvents.RegisterInitState(this, () =>
+                {
+                    Log.Info("StorageCapacityMod: InitState fired, reapplying capacity overrides.");
+                    overrideManager.ReapplyAllOverrides();
+                });
             }
         }
         catch (Exception ex)
