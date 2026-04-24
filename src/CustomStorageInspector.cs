@@ -30,7 +30,7 @@ public abstract class CustomStorageInspector : BaseStorageInspector<Storage>
 {
     private Label m_currentCapLabel;
     private Label m_defaultCapLabel;
-    private TxtField m_capacityInput;
+    private TextField m_capacityInput;
 
     protected CustomStorageInspector(
         UiContext context,
@@ -79,8 +79,11 @@ public abstract class CustomStorageInspector : BaseStorageInspector<Storage>
         // ── Custom capacity input ──
         AddPanelRow(
             row => row.JustifyItemsSpaceBetween(),
-            m_capacityInput = new TxtField("".AsLoc())
-                .FlexGrow(1f),
+            m_capacityInput = new TextField()
+                .NumericOnly()
+                .CharLimit(9)
+                .Placeholder("Enter capacity".AsLoc())
+                .OnEditEnd(_ => ApplyCapacityFromInput()),
             CreateCapacityButton("Set", () => ApplyCapacityFromInput())
         );
 
@@ -89,6 +92,8 @@ public abstract class CustomStorageInspector : BaseStorageInspector<Storage>
             row => row.JustifyItemsSpaceBetween(),
             CreateCapacityButton("Half", () => ApplyCapacityMultiplier(0.5)),
             CreateCapacityButton("-500", () => ApplyCapacityDelta(-500)),
+            CreateCapacityButton("-100", () => ApplyCapacityDelta(-100)),
+            CreateCapacityButton("+100", () => ApplyCapacityDelta(100)),
             CreateCapacityButton("+500", () => ApplyCapacityDelta(500)),
             CreateCapacityButton("x2", () => ApplyCapacityMultiplier(2.0))
         );
