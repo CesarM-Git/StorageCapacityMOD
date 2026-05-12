@@ -25,8 +25,15 @@ namespace StorageCapacityMod;
 /// Intentionally abstract: InspectorsManager's assembly scan skips abstract classes,
 /// preventing a duplicate-key crash with the built-in StorageInspector.
 /// A concrete subclass is generated at runtime via IL emit in StorageCapacityMod.Initialize().
+///
+/// IMPORTANT: This class extends the game's concrete <see cref="StorageInspector"/>
+/// (rather than <c>BaseStorageInspector&lt;Storage&gt;</c>) so that Harmony postfixes
+/// attached to <see cref="StorageInspector"/>'s constructor by other mods still fire
+/// when our IL-emitted runtime subclass is instantiated. This is what keeps us
+/// compatible with mods such as Gameplay++ (Warehouse extra slots and Parking HQ UI),
+/// both of which Harmony-patch the StorageInspector ctor to inject extra panels.
 /// </summary>
-public abstract class CustomStorageInspector : BaseStorageInspector<Storage>
+public abstract class CustomStorageInspector : StorageInspector
 {
     private Label m_currentCapLabel;
     private Label m_defaultCapLabel;
