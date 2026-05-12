@@ -116,6 +116,14 @@ public sealed class StorageCapacityMod : IMod, IDisposable
                     overrideManager.ReapplyAllOverrides();
                 });
             }
+
+            // ── Step 4: Unlock fluids/gases flagged unstorable in vanilla ──
+            // Runs here (not in RegisterPrototypes) so it works regardless of mod load
+            // order: by Initialize, ProtosDb.LockAndInitializeProtos has already cached
+            // StorableProducts on every storage proto, so we both flip IsStorable on
+            // the fluid products AND rebuild StorableProducts on every FluidStorageProto.
+            var protosDb = resolver.Resolve<ProtosDb>();
+            FluidStorageUnlocker.Run(protosDb);
         }
         catch (Exception ex)
         {

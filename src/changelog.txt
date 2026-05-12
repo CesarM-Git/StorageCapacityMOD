@@ -1,0 +1,51 @@
+Changelog - v1.2.0
+
+New Features
+
+* Fluid unlock: vanilla fluids previously flagged "cannot be stored" can now be
+  selected in any Fluid Storage. This covers Steam (super / high / low /
+  depleted), Exhaust, Core Fuel, Core Fuel (spent), Blanket Fuel, Blanket Fuel
+  (enriched), and Chilled Water. Mod-added fluids that use the same vanilla
+  "cannotBeStored" flag are also unlocked automatically.
+
+Fixes
+
+* Gameplay++ Warehouse compatibility: the Warehouse now correctly displays all
+  4 product slots and the per-port mapping panel when Storage Capacity
+  Override is installed. Previously the extra panels were silently dropped.
+* Gameplay++ Parking HQ compatibility: the Parking HQ now correctly displays
+  its full dashboard (parked count, allowed slider, truck types, fuel storage,
+  CP slots, zone priority) when Storage Capacity Override is installed.
+  Previously it fell back to a generic storage UI.
+
+Notes
+
+* The above two fixes apply to any future mod that uses Harmony postfixes on
+  the game's StorageInspector constructor, not just Gameplay++.
+
+----------------------------------------------------------------------
+
+Changelog - v1.1.1
+
+Improvements
+
+* The mod now also works for the "Radioactive Waste Storage" building.
+
+----------------------------------------------------------------------
+
+Changelog - v1.1.0
+
+New Features
+
+* Direct capacity input: a text field on the storage inspector lets you type
+  in the exact capacity you want instead of using only the +/- buttons.
+
+Improvements
+
+* Revised the mod's Initialize method for cleaner startup and more reliable
+  patching.
+
+Fixes
+
+* Corrected manifest.json version fields to use the proper min_game_version /
+  max_verified_game_version schema.
