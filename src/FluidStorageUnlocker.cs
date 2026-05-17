@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Mafi;
+using Mafi.Base.Prototypes.Trains;
 using Mafi.Collections;
 using Mafi.Core.Buildings.Storages;
 using Mafi.Core.Products;
@@ -12,7 +13,8 @@ namespace StorageCapacityMod;
 
 /// <summary>
 /// Unlocks fluid/gas products that the vanilla game flags as <c>cannotBeStored</c>
-/// so they can be selected in Fluid Storage buildings.
+/// so they can be selected in Fluid Storage buildings and on fluid train station
+/// modules.
 ///
 /// In vanilla, a fluid storage's product picker is driven by
 /// <see cref="StorageProto.StorableProducts"/>, which is built once during
@@ -24,12 +26,30 @@ namespace StorageCapacityMod;
 /// SteamSp, SteamHi, SteamLo, SteamDepleted, Exhaust. None have <c>Radioactivity &gt; 0</c>,
 /// so flipping <c>IsStorable</c> is enough.
 ///
+/// Train station modules (<see cref="TrainStationModuleProto"/>) follow the same
+/// pattern: the inspector's product picker reads <see cref="TrainStationModuleProto.StorableProducts"/>,
+/// also cached during <c>OnInitialize</c> using a near-identical predicate
+/// <c>p.Type == ProductType &amp;&amp; p.IsStorable &amp;&amp; p.Radioactivity == 0</c>.
+/// We rebuild that set too so unlocked fluids appear in the fluid station module's picker.
+///
+/// Fluid wagons (<see cref="Mafi.Core.Trains.CargoWagonProto"/>) don't need a rebuild:
+/// their picker uses <c>ProductProto.CanBeLoadedOnTrain</c> which is a virtual
+/// property that defaults to <c>IsStorable</c>. Since we flip <c>IsStorable</c>, the
+/// wagon picker (and the runtime <c>CargoWagon.SubCargoWagon.CanReceive</c> check, which
+/// only validates <c>ProductType</c>) accept the unlocked fluids automatically.
+///
+/// <see cref="TrainStationFuelProto"/> (locomotive fuel stations) is deliberately NOT
+/// touched: its <c>StorableProducts</c> is populated explicitly from <c>AddFuel(...)</c>
+/// calls during prototype registration, not from a filter, so it already lists the
+/// correct locomotive fuels (Diesel, Heating Oil, etc.) — we don't want exhaust to
+/// count as locomotive fuel.
+///
 /// Strategy: this runs from <see cref="StorageCapacityMod.Initialize"/>, which is
 /// AFTER <c>ProtosDb.LockAndInitializeProtos</c> (so the cached
-/// <see cref="StorageProto.StorableProducts"/> set already exists). We therefore both
-/// flip <c>IsStorable</c> AND manually rebuild <c>StorableProducts</c> on every
-/// <see cref="FluidStorageProto"/> via reflection on its private setter, so the new
-/// fluids appear in the picker immediately.
+/// <see cref="StorageProto.StorableProducts"/> and <see cref="TrainStationModuleProto.StorableProducts"/>
+/// sets already exist). We therefore both flip <c>IsStorable</c> AND manually rebuild
+/// those sets via reflection on their private setters, so the new fluids appear in
+/// the pickers immediately.
 ///
 /// Future-proof against modded fluids: we don't hardcode the 10 product IDs — we just
 /// flip every <see cref="FluidProductProto"/> with <c>IsStorable == false</c>.
@@ -38,6 +58,7 @@ internal static class FluidStorageUnlocker
 {
     private static FieldInfo s_isStorableField;
     private static PropertyInfo s_storableProductsProp;
+    private static PropertyInfo s_stationStorableProductsProp;
 
     public static void Run(ProtosDb protosDb)
     {
@@ -51,9 +72,12 @@ internal static class FluidStorageUnlocker
         {
             int flipped = FlipUnstorableFluids(protosDb);
             int rebuilt = RebuildFluidStorableSets(protosDb);
+            int rebuiltStations = RebuildTrainStationModuleStorableSets(protosDb);
             Log.Info($"StorageCapacityMod: fluid unlock complete — {flipped} fluid(s) unlocked, "
-                     + $"{rebuilt} fluid storage proto(s) rebuilt.");
+                     + $"{rebuilt} fluid storage proto(s) rebuilt, "
+                     + $"{rebuiltStations} train station module proto(s) rebuilt.");
             LogPickerVisibility(protosDb);
+            LogStationModulePickerVisibility(protosDb);
         }
         catch (Exception ex)
         {
@@ -200,6 +224,100 @@ internal static class FluidStorageUnlocker
         catch (Exception ex)
         {
             Log.Warning($"StorageCapacityMod: LogPickerVisibility failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Re-runs <see cref="TrainStationModuleProto.IsProductSupported"/> on every
+    /// <see cref="TrainStationModuleProto"/> and replaces the cached
+    /// <see cref="TrainStationModuleProto.StorableProducts"/> set via reflection on its
+    /// private setter. The fluid-typed station module's picker (built by
+    /// <c>TrainStationModuleInspector</c> through <c>Entity.Prototype.StorableProducts</c>)
+    /// then immediately sees the newly-unlocked fluids without needing a UI rebuild.
+    ///
+    /// Loose / unit station modules are touched too but stay unchanged because their
+    /// predicate filters out non-matching <c>ProductType</c>s — the rebuild simply re-runs
+    /// the existing filter, so it's a no-op for them.
+    /// </summary>
+    private static int RebuildTrainStationModuleStorableSets(ProtosDb protosDb)
+    {
+        if (s_stationStorableProductsProp == null)
+        {
+            s_stationStorableProductsProp = typeof(TrainStationModuleProto).GetProperty(
+                "StorableProducts",
+                BindingFlags.Instance | BindingFlags.Public);
+            if (s_stationStorableProductsProp == null)
+            {
+                Log.Error("StorageCapacityMod: TrainStationModuleProto.StorableProducts property not found via reflection.");
+                return 0;
+            }
+            if (!s_stationStorableProductsProp.CanWrite)
+            {
+                Log.Error("StorageCapacityMod: TrainStationModuleProto.StorableProducts has no setter — cannot rebuild.");
+                return 0;
+            }
+        }
+
+        var stationModules = protosDb.All<TrainStationModuleProto>().ToList();
+        int rebuilt = 0;
+        foreach (TrainStationModuleProto stationModule in stationModules)
+        {
+            if (stationModule == null) continue;
+            try
+            {
+                var oldSet = stationModule.StorableProducts;
+                var newList = protosDb.Filter<ProductProto>(stationModule.IsProductSupported).ToList();
+                var newSet = new Set<ProductProto>(newList);
+                s_stationStorableProductsProp.SetValue(stationModule, newSet);
+                int oldCount = oldSet?.Count ?? 0;
+                int newCount = newSet.Count;
+                int added = newCount - oldCount;
+                Log.Info($"StorageCapacityMod: rebuilt StorableProducts on train station module '{stationModule.Id.Value}' "
+                         + $"({oldCount} → {newCount}, +{added}).");
+                rebuilt++;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"StorageCapacityMod: failed to rebuild StorableProducts on train station module '{stationModule.Id.Value}': {ex.Message}");
+            }
+        }
+        return rebuilt;
+    }
+
+    /// <summary>
+    /// Sanity log analogous to <see cref="LogPickerVisibility"/> but for fluid-typed
+    /// train station modules. Picks the first <see cref="TrainStationModuleProto"/> whose
+    /// <c>ProductType</c> is <see cref="ProductType.Fluid"/> and dumps the rebuilt
+    /// <see cref="TrainStationModuleProto.StorableProducts"/> set into Player.log.
+    /// </summary>
+    private static void LogStationModulePickerVisibility(ProtosDb protosDb)
+    {
+        try
+        {
+            TrainStationModuleProto sample = null;
+            foreach (var m in protosDb.All<TrainStationModuleProto>())
+            {
+                if (m.ProductType == ProductType.Fluid) { sample = m; break; }
+            }
+            if (sample == null)
+            {
+                Log.Info("StorageCapacityMod: no fluid TrainStationModuleProto found — nothing to verify.");
+                return;
+            }
+            var visible = sample.StorableProducts;
+            int count = visible?.Count ?? 0;
+            Log.Info($"StorageCapacityMod: fluid station module picker on '{sample.Id.Value}' will offer {count} product(s):");
+            if (visible != null)
+            {
+                foreach (ProductProto p in visible)
+                {
+                    Log.Info($"StorageCapacityMod:   - {p.Id.Value} (IsStorable={p.IsStorable}, IsAvailable={p.IsAvailable}, IsUnlocked={p.IsUnlocked})");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"StorageCapacityMod: LogStationModulePickerVisibility failed: {ex.Message}");
         }
     }
 }

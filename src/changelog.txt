@@ -1,3 +1,27 @@
+Changelog - v1.2.1
+
+New Features
+
+* Fluid unlock on train stations: the fluids unlocked by v1.2.0 now also appear
+  in the fluid train station module's product picker. Exhaust, Steam (super /
+  high / low / depleted), Core Fuel, Core Fuel (spent), Blanket Fuel, Blanket
+  Fuel (enriched), and Chilled Water can now be loaded and unloaded at fluid
+  train stations. Mod-added fluids that follow the same vanilla "cannotBeStored"
+  flag are picked up automatically.
+
+Notes
+
+* No changes were needed for fluid wagons or train schedule filters — the
+  wagon picker already gates on a property that flips automatically when a
+  fluid is unlocked, so as long as Storage Capacity Override is installed the
+  entire fluid-train chain (wagon filter, schedule load/unload filters, depart
+  conditions) accepts the unlocked fluids.
+* Locomotive refuel stations are intentionally unchanged: their allowed-fuel
+  list is curated explicitly at registration, so exhaust will not appear as a
+  locomotive fuel option.
+
+----------------------------------------------------------------------
+
 Changelog - v1.2.0
 
 New Features
