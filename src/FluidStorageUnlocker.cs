@@ -287,8 +287,13 @@ internal static class FluidStorageUnlocker
     /// <summary>
     /// Sanity log analogous to <see cref="LogPickerVisibility"/> but for fluid-typed
     /// train station modules. Picks the first <see cref="TrainStationModuleProto"/> whose
-    /// <c>ProductType</c> is <see cref="ProductType.Fluid"/> and dumps the rebuilt
+    /// <c>ProductType</c> is the fluid product type and dumps the rebuilt
     /// <see cref="TrainStationModuleProto.StorableProducts"/> set into Player.log.
+    /// <para>
+    /// Note: <see cref="ProductType"/> is a <c>struct</c>, not an enum. There's no
+    /// <c>ProductType.Fluid</c> constant — the fluid product type is exposed as the
+    /// static field <see cref="FluidProductProto.ProductType"/>.
+    /// </para>
     /// </summary>
     private static void LogStationModulePickerVisibility(ProtosDb protosDb)
     {
@@ -297,7 +302,7 @@ internal static class FluidStorageUnlocker
             TrainStationModuleProto sample = null;
             foreach (var m in protosDb.All<TrainStationModuleProto>())
             {
-                if (m.ProductType == ProductType.Fluid) { sample = m; break; }
+                if (m.ProductType == FluidProductProto.ProductType) { sample = m; break; }
             }
             if (sample == null)
             {
