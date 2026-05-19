@@ -9,6 +9,15 @@ New Features
   train stations. Mod-added fluids that follow the same vanilla "cannotBeStored"
   flag are picked up automatically.
 
+Fixes
+
+* Capacity is now preserved when a storage is moved or upgraded. Previously
+  the game's replace logic reset every storage's buffer back to its prototype
+  default whenever the building was relocated or its tier changed, wiping the
+  override. The mod now re-applies the saved value immediately after the
+  game's replace pass, so capacity survives both moves and tier upgrades.
+  Applies to unit, loose, fluid, and radioactive waste storages.
+
 Notes
 
 * No changes were needed for fluid wagons or train schedule filters — the
@@ -19,6 +28,10 @@ Notes
 * Locomotive refuel stations are intentionally unchanged: their allowed-fuel
   list is curated explicitly at registration, so exhaust will not appear as a
   locomotive fuel option.
+* The move/upgrade fix re-applies the absolute capacity value (e.g. an
+  override of 50,000 stays at 50,000 after an upgrade), not a multiplier of
+  the new tier's default. If you want to scale up after upgrading, just adjust
+  the value in the inspector as usual.
 
 ----------------------------------------------------------------------
 

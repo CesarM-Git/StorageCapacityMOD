@@ -117,7 +117,18 @@ public sealed class StorageCapacityMod : IMod, IDisposable
                 });
             }
 
-            // ── Step 4: Unlock fluids/gases flagged unstorable in vanilla ──
+            // ── Step 4: Re-apply capacity on move/upgrade ──
+            // Both move and upgrade go through EntitiesManager.TryReplaceEntity, which
+            // calls Storage.TryReplaceSelf → ForceNewCapacityTo(Prototype.Capacity),
+            // wiping our override. EntityId is preserved across replace (same entity
+            // instance), so we just resubscribe via OnUpgradeJustPerformed — fires
+            // after the proto swap + capacity reset, exactly when we want to re-apply.
+            // NOTE: Event.Add/AddNonSaveable require a real method on the owner type;
+            // they reject lambdas. Hence the private method below.
+            entitiesManager.OnUpgradeJustPerformed.AddNonSaveable(this, onUpgradeJustPerformed);
+            Log.Info("StorageCapacityMod: subscribed to OnUpgradeJustPerformed for move/upgrade reapply.");
+
+            // ── Step 5: Unlock fluids/gases flagged unstorable in vanilla ──
             // Runs here (not in RegisterPrototypes) so it works regardless of mod load
             // order: by Initialize, ProtosDb.LockAndInitializeProtos has already cached
             // StorableProducts on every storage proto, so we both flip IsStorable on
@@ -128,6 +139,23 @@ public sealed class StorageCapacityMod : IMod, IDisposable
         catch (Exception ex)
         {
             Log.Error($"StorageCapacityMod: Failed to initialize: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Handler for IEntitiesManager.OnUpgradeJustPerformed. Fires after a successful
+    /// move or upgrade — the game has already reset our capacity to the new prototype
+    /// default via Storage.TryReplaceSelf → ForceNewCapacityTo(Prototype.Capacity).
+    /// We re-apply the saved override here (same EntityId is preserved across replace).
+    ///
+    /// Must be a regular instance method on this owner type — Event.AddNonSaveable
+    /// rejects lambdas / inherited methods.
+    /// </summary>
+    private void onUpgradeJustPerformed(IUpgradableEntity entity, IEntityProto oldProto)
+    {
+        if (entity is Storage storage && CapacityOverrideManager.Instance != null)
+        {
+            CapacityOverrideManager.Instance.TryReapplyOverrideAfterReplace(storage);
         }
     }
 

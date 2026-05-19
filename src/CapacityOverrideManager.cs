@@ -156,6 +156,41 @@ public class CapacityOverrideManager
         SaveOverrides();
     }
 
+    /// <summary>
+    /// Re-apply the saved override (if any) for a storage that was just moved
+    /// or upgraded. The game's <c>Storage.TryReplaceSelf</c> calls
+    /// <c>ForceNewCapacityTo(Prototype.Capacity)</c> during replace, wiping our
+    /// override back to the prototype default. EntityId is preserved across
+    /// replace (same entity instance, same id), so we can just look up by id
+    /// and shove the saved value back in.
+    ///
+    /// Called from <see cref="M:Mafi.Core.Entities.IEntitiesManager.OnUpgradeJustPerformed" />
+    /// which fires AFTER PerformReplace returns true — i.e. after the reset.
+    /// We deliberately do NOT call SaveOverrides() here: the value on disk
+    /// hasn't changed, this is purely a re-application.
+    /// </summary>
+    public void TryReapplyOverrideAfterReplace(Storage entity)
+    {
+        if (s_forceCapacityMethod == null) return;
+
+        int id = entity.Id.Value;
+        if (!m_overrides.TryGetValue(id, out int saved)) return;
+
+        // Defensive clamp — the value on disk could be stale or out of range
+        // if MAX_CAPACITY was lowered in a later mod version.
+        saved = Math.Max(MIN_CAPACITY, Math.Min(MAX_CAPACITY, saved));
+
+        try
+        {
+            s_forceCapacityMethod.Invoke(entity, new object[] { new Quantity(saved) });
+            Log.Info($"StorageCapacityMod: reapplied capacity {saved} to entity {id} after move/upgrade.");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"StorageCapacityMod: Failed to reapply override after move/upgrade for entity {id}: {ex.Message}");
+        }
+    }
+
     // ── Simple JSON persistence (no external dependencies) ──
 
     private void SaveOverrides()
