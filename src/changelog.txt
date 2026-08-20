@@ -1,3 +1,17 @@
+Changelog - v1.2.3
+
+Fixes
+
+* Cut roughly 80 lines of startup log noise. The fluid-picker diagnostic used
+  to enumerate every one of the ~40 products in the storage picker AND every
+  product in the train station module picker, on every single load. It now
+  logs just the totals. The fluids this mod actually unlocks are still listed
+  individually, so nothing diagnostic is lost.
+
+No gameplay changes. Log verbosity only.
+
+----------------------------------------------------------------------
+
 Changelog - v1.2.2
 
 Compatibility

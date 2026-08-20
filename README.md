@@ -4,7 +4,7 @@ A mod for [Captain of Industry](https://www.captain-of-industry.com/) that lets
 you change any storage building's capacity from its inspector, and unlocks the
 vanilla fluids the game marks "cannot be stored".
 
-**Version 1.2.2** · Game **0.8.7** · by Nimb
+**Version 1.2.3** · Game **0.8.7** · by Nimb
 
 ## What it does
 

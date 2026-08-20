@@ -212,14 +212,11 @@ internal static class FluidStorageUnlocker
             }
             var visible = sample.StorableProducts;
             int count = visible?.Count ?? 0;
-            Log.Info($"StorageCapacityMod: fluid picker on '{sample.Id.Value}' will offer {count} product(s):");
-            if (visible != null)
-            {
-                foreach (ProductProto p in visible)
-                {
-                    Log.Info($"StorageCapacityMod:   - {p.Id.Value} (IsStorable={p.IsStorable}, IsAvailable={p.IsAvailable}, IsUnlocked={p.IsUnlocked})");
-                }
-            }
+            // Summary only. This used to enumerate all ~40 products at Info on every load,
+            // which was ~40 lines of noise per picker and made real problems harder to spot
+            // in Player.log. The names of the fluids this mod unlocked are already logged
+            // individually by UnlockFluids; the useful check here is just the final count.
+            Log.Info($"StorageCapacityMod: fluid picker on '{sample.Id.Value}' will offer {count} product(s).");
         }
         catch (Exception ex)
         {
@@ -316,14 +313,8 @@ internal static class FluidStorageUnlocker
             }
             var visible = sample.StorableProducts;
             int count = visible?.Count ?? 0;
-            Log.Info($"StorageCapacityMod: fluid station module picker on '{sample.Id.Value}' will offer {count} product(s):");
-            if (visible != null)
-            {
-                foreach (ProductProto p in visible)
-                {
-                    Log.Info($"StorageCapacityMod:   - {p.Id.Value} (IsStorable={p.IsStorable}, IsAvailable={p.IsAvailable}, IsUnlocked={p.IsUnlocked})");
-                }
-            }
+            // Summary only — see the note in LogPickerVisibility.
+            Log.Info($"StorageCapacityMod: fluid station module picker on '{sample.Id.Value}' will offer {count} product(s).");
         }
         catch (Exception ex)
         {
