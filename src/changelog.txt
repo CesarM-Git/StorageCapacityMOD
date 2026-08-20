@@ -1,3 +1,28 @@
+Changelog - v1.2.2
+
+Compatibility
+
+* Verified against Captain of Industry 0.8.7. No gameplay changes.
+* Every game API this mod reaches by reflection was re-checked against the
+  0.8.7 assemblies and none of them moved or changed shape:
+  InspectorsManager.m_inspectorsImplTypes and the Dict<Type,Type> indexer /
+  Add / Remove used to swap the registered inspector,
+  StorageBase.ForceNewCapacityTo, ProductProto.IsStorable,
+  StorageProto.StorableProducts, and
+  TrainStationModuleProto.StorableProducts.
+* The inspector chain the runtime subclass is emitted against is also
+  unchanged: StorageInspector is still non-sealed, still derives from
+  BaseStorageInspector<Storage>, and still takes the same 8 constructor
+  parameters in the same order, so the IL-emitted concrete inspector still
+  binds. BaseInspector.AddPanelRow is unchanged too.
+* Storage.TryReplaceSelf still resets the buffer to the prototype default on
+  a successful replace, so the v1.2.1 move/upgrade fix is still needed and
+  still fires from the same event.
+* min_game_version is now 0.8.7. This build no longer claims support for
+  older game versions as it wasn't verified for them.
+
+----------------------------------------------------------------------
+
 Changelog - v1.2.1
 
 New Features
