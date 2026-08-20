@@ -2,7 +2,18 @@ Changelog - v1.2.2
 
 Compatibility
 
-* Verified against Captain of Industry 0.8.7. No gameplay changes.
+* Rebuilt for Captain of Industry 0.8.7. Two compile-time API removals had to
+  be fixed; behaviour is unchanged.
+* TextField.NumericOnly() no longer exists. 0.8.7 split it into four explicit
+  variants — PositiveIntegersOnly, AllIntegersOnly, and positive/signed
+  decimal equivalents, all wrapping OnValidateInput(NumericInput.Is*Char).
+  The capacity input now uses PositiveIntegersOnly, which additionally
+  rejects a leading '-' that the old field would let you type.
+* ProductType lost its == and != operators. Comparison is now an explicit
+  choice between Matches (honours the ANY / NON_MOLTEN wildcards) and
+  ExactlyMatches (raw type identity). The fluid train-station diagnostic uses
+  ExactlyMatches, which is what the old == did, so a universal wagon module
+  typed ANY or NON_MOLTEN is still not mistaken for a fluid module.
 * Every game API this mod reaches by reflection was re-checked against the
   0.8.7 assemblies and none of them moved or changed shape:
   InspectorsManager.m_inspectorsImplTypes and the Dict<Type,Type> indexer /

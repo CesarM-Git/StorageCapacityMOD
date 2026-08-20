@@ -302,7 +302,12 @@ internal static class FluidStorageUnlocker
             TrainStationModuleProto sample = null;
             foreach (var m in protosDb.All<TrainStationModuleProto>())
             {
-                if (m.ProductType == FluidProductProto.ProductType) { sample = m; break; }
+                // 0.8.7 removed ProductType's == / != operators and split comparison into
+                // Matches (honours the ANY / NON_MOLTEN wildcards) and ExactlyMatches
+                // (raw type identity, and what Equals uses). The old == was raw identity,
+                // so ExactlyMatches preserves the previous behaviour: a universal wagon
+                // module typed ANY or NON_MOLTEN must NOT be picked as the fluid sample.
+                if (m.ProductType.ExactlyMatches(FluidProductProto.ProductType)) { sample = m; break; }
             }
             if (sample == null)
             {

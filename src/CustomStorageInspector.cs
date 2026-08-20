@@ -87,7 +87,13 @@ public abstract class CustomStorageInspector : StorageInspector
         AddPanelRow(
             row => row.JustifyItemsSpaceBetween(),
             m_capacityInput = new TextField()
-                .NumericOnly()
+                // 0.8.7 replaced the single NumericOnly() with four explicit variants:
+                // PositiveIntegersOnly / AllIntegersOnly / positive-decimal / decimal, all
+                // thin wrappers over OnValidateInput(NumericInput.Is*Char). Capacity is a
+                // positive integer, so PositiveIntegersOnly is the right one — it also
+                // blocks the '-' that int.TryParse in ApplyCapacityFromInput would have
+                // happily accepted before.
+                .PositiveIntegersOnly()
                 .CharLimit(9)
                 .Placeholder("Enter capacity".AsLoc())
                 .OnEditEnd(_ => ApplyCapacityFromInput()),
